@@ -4,7 +4,7 @@ import "../styles/variables.css";
 import styles from "./layout.module.css";
 
 export const metadata = {
-  title: "Labs",
+  title: "Next.js Boilerplate IA - Great Workflow",
   description: "Description de votre projet",
 };
 
