@@ -1,0 +1,96 @@
+:root {
+  /* Colors */
+  --liseret-black: #00000004;
+  --black-4: #00000004;
+  --rouge: #ab2325;
+  --beige: #f9f1ea;
+  --bleu: #003b87;
+  --beige-30: #f9f1ea30;
+  --noir: #000000;
+  --black-20: #00000020;
+  --blanc: #ffffff;
+
+  /* Typography */
+  --font-xxl-med: 84px/80px "articulat_cfmedium", sans-serif;
+  --font-xl-med-1: 48px/60px "articulat_cfmedium", sans-serif;
+  --font-xl-med-2: 64px / auto "articulat_cfmedium", sans-serif;
+  --font-m-med: 36px/48px "articulat_cfmedium", sans-serif;
+  --font-s-med: 22px/36px "articulat_cfmedium", sans-serif;
+  --font-xs-med: 18px/24px "articulat_cfmedium", sans-serif;
+  --font-button: 18px / auto "articulat_cfmedium", sans-serif;
+  --font-tag: 18px / auto "bebas_neueregular";
+
+  :root {
+    /* Base typography (desktop - above 1024px) */
+    --font-xxl-med: 84px/80px "articulat_cfmedium", sans-serif;
+    --font-xl-med-1: 48px/60px "articulat_cfmedium", sans-serif;
+    --font-xl-med-2: 64px / auto "articulat_cfmedium", sans-serif;
+    --font-m-med: 36px/48px "articulat_cfmedium", sans-serif;
+    --font-s-med: 22px/36px "articulat_cfmedium", sans-serif;
+    --font-xs-med: 18px/24px "articulat_cfmedium", sans-serif;
+    --font-button: 18px / auto "articulat_cfmedium", sans-serif;
+    --font-tag: 18px / auto "bebas_neueregular";
+  }
+
+  /* Spacings */
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Spacings custom */
+  --padding-80: 80px;
+  --padding-120: 120px;
+  --spacing-lg: 20px;
+
+  /* Border Radius */
+  --border-6: 6px;
+
+  /* Opacities */
+  --opacity-4: 0.04;
+  --opacity-10: 0.1;
+  --opacity-20: 0.2;
+  --opacity-30: 0.3;
+}
+
+/* Scale down for laptops and smaller desktops */
+@media screen and (max-width: 1024px) {
+  :root {
+    --font-xxl-med: 72px/70px "articulat_cfmedium", sans-serif;
+    --font-xl-med-1: 42px/54px "articulat_cfmedium", sans-serif;
+    --font-xl-med-2: 56px / auto "articulat_cfmedium", sans-serif;
+    --font-m-med: 34px/44px "articulat_cfmedium", sans-serif;
+    --font-s-med: 34px/44px "articulat_cfmedium", sans-serif;
+    --font-xs-med: 17px/22px "articulat_cfmedium", sans-serif;
+    --font-button: 17px / auto "articulat_cfmedium", sans-serif;
+    --font-tag: 17px / auto "bebas_neueregular";
+  }
+}
+
+/* Scale down for tablets */
+@media screen and (max-width: 768px) {
+  :root {
+    --font-xxl-med: 60px/52px "articulat_cfmedium", sans-serif;
+    --font-xl-med-1: 36px/48px "articulat_cfmedium", sans-serif;
+    --font-xl-med-2: 48px / auto "articulat_cfmedium", sans-serif;
+    --font-m-med: 28px/40px "articulat_cfmedium", sans-serif;
+    --font-s-med: 18px/24px "articulat_cfmedium", sans-serif;
+    --font-xs-med: 16px/20px "articulat_cfmedium", sans-serif;
+    --font-button: 16px / auto "articulat_cfmedium", sans-serif;
+    --font-tag: 16px / auto "bebas_neueregular";
+  }
+}
+
+/* Scale down for mobile */
+@media screen and (max-width: 480px) {
+  :root {
+    --font-xxl-med: 56px/58px "articulat_cfmedium", sans-serif;
+    --font-xl-med-1: 32px/42px "articulat_cfmedium", sans-serif;
+    --font-xl-med-2: 40px / auto "articulat_cfmedium", sans-serif;
+    --font-m-med: 24px/36px "articulat_cfmedium", sans-serif;
+    --font-s-med: 18px/24px "articulat_cfmedium", sans-serif;
+    --font-xs-med: 15px/20px "articulat_cfmedium", sans-serif;
+    --font-button: 15px / auto "articulat_cfmedium", sans-serif;
+    --font-tag: 15px / auto "bebas_neueregular";
+  }
+}
