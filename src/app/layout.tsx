@@ -1,10 +1,10 @@
 // app/layout.tsx
 import "../styles/globals.css";
 import "../styles/variables.css";
-import styles from "./layout.module.css";
+import LenisProvider from "./LenisProvider";
 
 export const metadata = {
-  title: "Next.js Boilerplate IA - Great Workflow",
+  title: "Antoine Piney - Portfolio",
   description: "Description de votre projet",
 };
 
@@ -16,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <div className={styles.layoutContainer}>
-          <main className={styles.mainContent}>{children}</main>
-        </div>
+        <LenisProvider>{children}</LenisProvider>
       </body>
     </html>
   );
