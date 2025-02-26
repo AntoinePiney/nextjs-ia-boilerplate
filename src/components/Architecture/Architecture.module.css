@@ -76,7 +76,6 @@
   position: relative;
   overflow: hidden;
   border-radius: 4px;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
   cursor: pointer;
   aspect-ratio: 4/5;
@@ -117,11 +116,6 @@
   grid-column: 3 / span 5;
   grid-row: 8;
   margin-top: 20vh;
-}
-
-/* Effet de hover */
-.imageContainer:hover {
-  transform: scale(1.05);
 }
 
 .image {
@@ -217,42 +211,6 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-/* Classe ajoutée après le chargement */
-.imageContainer.loaded {
-  animation: fadeIn 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-}
-
-/* Effet de hover amélioré */
-.imageContainer:hover {
-  transform: scale(1.05);
-}
-
-/* Effet de "glitch" subtil lors du hover */
-@keyframes glitch {
-  0% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-2px, 2px);
-  }
-  40% {
-    transform: translate(-2px, -2px);
-  }
-  60% {
-    transform: translate(2px, 2px);
-  }
-  80% {
-    transform: translate(2px, -2px);
-  }
-  100% {
-    transform: translate(0);
-  }
-}
-
-.imageContainer:hover .image {
-  animation: glitch 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* Mobile */
