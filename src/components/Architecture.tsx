@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import styles from "./Architecture.module.css";
 
@@ -35,12 +35,12 @@ interface MediaItem {
 
 // Images de base avec définition de constante
 const BASE_IMAGES = [
-  "/assets/images/blank.webp",
-  "/assets/images/blank.webp",
-  "/assets/images/blank.webp",
-  "/assets/images/blank.webp",
-  "/assets/images/blank.webp",
-  "/assets/images/blank.webp",
+  "/assets/images/1.jpg",
+  "/assets/images/2.jpg",
+  "/assets/images/3.jpg",
+  "/assets/images/4.jpg",
+  "/assets/images/5.jpg",
+  "/assets/images/6.jpg",
 ] as const;
 
 // Shaders définis en dehors du composant pour éviter leur recréation à chaque rendu
@@ -147,7 +147,21 @@ export default function Architecture(): React.ReactElement {
   // Animation frame
   const animationId = useRef<number | null>(null);
 
-  // Mise à jour de l'heure de Paris avec useCallback pour optimiser
+  // Références pour les fonctions (pour éviter les dépendances circulaires)
+  const updateMediaScaleRef = useRef<(media: MediaItem) => void>(() => {});
+  const updateMediaXRef = useRef<(media: MediaItem, x?: number) => void>(
+    () => {}
+  );
+  const updateMediaYRef = useRef<(media: MediaItem, y?: number) => void>(
+    () => {}
+  );
+  const updateMediaBoundsRef = useRef<() => void>(() => {});
+  const handleResizeRef = useRef<() => void>(() => {});
+  const createMediasRef = useRef<() => void>(() => {});
+  const updateRef = useRef<() => void>(() => {});
+  const initWebGLRef = useRef<() => void>(() => {});
+
+  // Mise à jour de l'heure de Paris
   useEffect(() => {
     const updateTime = (): void => {
       const date = new Date();
@@ -165,366 +179,371 @@ export default function Architecture(): React.ReactElement {
     return () => clearInterval(interval);
   }, []);
 
-  // Méthodes optimisées avec useCallback pour éviter les recréations inutiles
-  const updateMediaScale = useCallback((media: MediaItem) => {
-    if (!media.bounds) return;
-
-    media.mesh.scale.x =
-      (viewportRef.current.width * media.bounds.width) /
-      screenRef.current.width;
-    media.mesh.scale.y =
-      (viewportRef.current.height * media.bounds.height) /
-      screenRef.current.height;
-  }, []);
-
-  const updateMediaX = useCallback((media: MediaItem, x: number = 0) => {
-    if (!media.bounds) return;
-
-    media.mesh.position.x =
-      -(viewportRef.current.width / 2) +
-      media.mesh.scale.x / 2 +
-      ((media.bounds.left - x) / screenRef.current.width) *
-        viewportRef.current.width;
-  }, []);
-
-  const updateMediaY = useCallback((media: MediaItem, y: number = 0) => {
-    if (!media.bounds) return;
-
-    media.mesh.position.y =
-      viewportRef.current.height / 2 -
-      media.mesh.scale.y / 2 -
-      ((media.bounds.top - y) / screenRef.current.height) *
-        viewportRef.current.height -
-      media.extra;
-  }, []);
-
-  // Mise à jour des bounds des médias
-  const updateMediaBounds = useCallback(() => {
-    mediasRef.current.forEach((media) => {
-      // Obtenir les dimensions
-      media.bounds = media.element.getBoundingClientRect();
-
-      // Mettre à jour l'échelle
-      updateMediaScale(media);
-
-      // Mettre à jour les positions
-      updateMediaX(media);
-      updateMediaY(media);
-
-      // Mettre à jour les dimensions dans le shader
-      media.program.uniforms.uPlaneSizes.value = [
-        media.mesh.scale.x,
-        media.mesh.scale.y,
-      ];
-    });
-  }, [updateMediaScale, updateMediaX, updateMediaY]);
-
-  // Gérer le redimensionnement avec useCallback
-  const handleResize = useCallback(() => {
-    if (
-      !rendererRef.current ||
-      !cameraRef.current ||
-      !canvasRef.current ||
-      !galleryRef.current
-    )
-      return;
-
-    // Mettre à jour les dimensions
-    screenRef.current = {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    };
-
-    // Mettre à jour le renderer
-    rendererRef.current.setSize(
-      screenRef.current.width,
-      screenRef.current.height
-    );
-
-    // Mettre à jour la caméra
-    cameraRef.current.perspective({
-      aspect: canvasRef.current.width / canvasRef.current.height,
-    });
-
-    // Calculer le viewport
-    const fov = cameraRef.current.fov * (Math.PI / 180);
-    const height = 2 * Math.tan(fov / 2) * cameraRef.current.position.z;
-    const width = height * cameraRef.current.aspect;
-
-    viewportRef.current = { width, height };
-
-    // Calculer la hauteur de la galerie
-    const galleryBounds = galleryRef.current.getBoundingClientRect();
-    galleryHeightRef.current =
-      (viewportRef.current.height * galleryBounds.height) /
-      screenRef.current.height;
-
-    // Mettre à jour les médias
-    if (mediasRef.current.length > 0) {
-      mediasRef.current.forEach((media) => {
-        media.extra = 0;
-        if (media.program.uniforms.uViewportSizes) {
-          media.program.uniforms.uViewportSizes.value = [
-            viewportRef.current.width,
-            viewportRef.current.height,
-          ];
-        }
-      });
-
-      updateMediaBounds();
-    }
-  }, [updateMediaBounds]);
-
-  // Initialisation de WebGL après le chargement des modules
-  const initWebGL = useCallback(() => {
-    if (!canvasRef.current || !oglModulesRef.current) return;
-
-    try {
-      const { Renderer, Camera, Transform, Plane } = oglModulesRef.current;
-
-      // Créer le renderer
-      rendererRef.current = new Renderer({
-        alpha: true,
-        antialias: true, // Amélioration de la qualité
-        canvas: canvasRef.current,
-        premultipliedAlpha: false, // Optimisation pour la transparence
-      });
-
-      glRef.current = rendererRef.current.gl;
-
-      if (!glRef.current) {
-        throw new Error("Impossible d'obtenir le contexte WebGL");
-      }
-
-      // Active la profondeur pour éviter les problèmes d'affichage
-      glRef.current.enable(glRef.current.DEPTH_TEST);
-
-      // Créer la caméra
-      cameraRef.current = new Camera(glRef.current);
-      cameraRef.current.fov = 45;
-      cameraRef.current.position.z = 5;
-
-      // Créer la scène
-      sceneRef.current = new Transform();
-
-      // Créer la géométrie
-      geometryRef.current = new Plane(glRef.current, {
-        heightSegments: 10,
-        widthSegments: 10, // Amélioration de la qualité
-      });
-
-      // Initialiser les dimensions
-      handleResize();
-
-      // Charger et initialiser les médias
-      setTimeout(() => {
-        createMedias();
-
-        // Démarrer l'animation
-        animationId.current = requestAnimationFrame(update);
-
-        setLoaded(true);
-      }, 200);
-    } catch (err) {
-      console.error("Erreur lors de l'initialisation de WebGL:", err);
-      setError(
-        "Erreur lors de l'initialisation de WebGL. Votre navigateur supporte-t-il WebGL?"
-      );
-    }
-  }, [handleResize]);
-
-  // Création des médias avec useCallback
-  const createMedias = useCallback(() => {
-    if (
-      !galleryRef.current ||
-      !glRef.current ||
-      !geometryRef.current ||
-      !sceneRef.current ||
-      !oglModulesRef.current
-    ) {
-      console.error("Références manquantes pour la création des médias");
-      return;
-    }
-
-    // Référence locale au contexte WebGL pour éviter les problèmes de typage
-    const gl = glRef.current;
-    const { Mesh, Program, Texture } = oglModulesRef.current;
-
-    const mediaElements = galleryRef.current.querySelectorAll(
-      `.${styles.imageContainer}`
-    );
-
-    mediasRef.current = Array.from(mediaElements)
-      .map((element, index) => {
-        const imgElement = element.querySelector("img");
-        if (!imgElement) {
-          console.error("Élément image introuvable");
-          return null;
-        }
-
-        // Créer une texture
-        const texture = new Texture(gl, {
-          generateMipmaps: false,
-        });
-
-        // Utiliser le constructeur global window.Image
-        const imageObj = new window.Image();
-        imageObj.crossOrigin = "anonymous";
-        imageObj.src = BASE_IMAGES[index % BASE_IMAGES.length]; // Utilise modulo pour éviter les erreurs si plus d'éléments que d'images
-
-        // Créer le programme
-        const program = new Program(gl, {
-          fragment: FRAGMENT_SHADER,
-          vertex: VERTEX_SHADER,
-          uniforms: {
-            tMap: { value: texture },
-            uPlaneSizes: { value: [0, 0] },
-            uImageSizes: { value: [0, 0] },
-            uViewportSizes: {
-              value: [viewportRef.current.width, viewportRef.current.height],
-            },
-            uStrength: { value: 0 },
-          },
-          transparent: true,
-          depthTest: false, // Pour un meilleur rendu des transparences
-          depthWrite: false,
-        });
-
-        // Gérer le chargement de l'image
-        imageObj.onload = () => {
-          program.uniforms.uImageSizes.value = [
-            imageObj.naturalWidth,
-            imageObj.naturalHeight,
-          ];
-          texture.image = imageObj;
-        };
-
-        // Créer le mesh
-        const mesh = new Mesh(gl, {
-          geometry: geometryRef.current,
-          program,
-        });
-
-        mesh.setParent(sceneRef.current);
-
-        return {
-          element: element as HTMLElement,
-          imgElement: imgElement as HTMLImageElement,
-          mesh,
-          program,
-          bounds: null,
-          extra: 0,
-        };
-      })
-      .filter(Boolean) as MediaItem[];
-
-    // Initialiser les bounds des médias
-    updateMediaBounds();
-  }, [updateMediaBounds]);
-
-  // Boucle d'animation optimisée avec useCallback
-  const update = useCallback(() => {
-    // Mettre à jour le défilement
-    scrollRef.current.target += speedRef.current;
-    scrollRef.current.current =
-      scrollRef.current.current +
-      (scrollRef.current.target - scrollRef.current.current) *
-        scrollRef.current.ease;
-
-    // Déterminer la direction
-    if (scrollRef.current.current > scrollRef.current.last) {
-      directionRef.current = "down";
-      speedRef.current = 2;
-    } else if (scrollRef.current.current < scrollRef.current.last) {
-      directionRef.current = "up";
-      speedRef.current = -2;
-    }
-
-    // Mettre à jour chaque média
-    mediasRef.current.forEach((media) => {
-      updateMediaScale(media);
-      updateMediaX(media);
-      updateMediaY(media, scrollRef.current.current);
-
-      const planeOffset = media.mesh.scale.y / 2;
-      const viewportOffset = viewportRef.current.height / 2;
-
-      const isBefore = media.mesh.position.y + planeOffset < -viewportOffset;
-      const isAfter = media.mesh.position.y - planeOffset > viewportOffset;
-
-      if (directionRef.current === "up" && isBefore) {
-        media.extra -= galleryHeightRef.current;
-      }
-
-      if (directionRef.current === "down" && isAfter) {
-        media.extra += galleryHeightRef.current;
-      }
-
-      // Mettre à jour l'effet de distorsion
-      media.program.uniforms.uStrength.value =
-        ((scrollRef.current.current - scrollRef.current.last) /
-          screenRef.current.width) *
-        10;
-    });
-
-    // Rendu
-    if (rendererRef.current && sceneRef.current && cameraRef.current) {
-      rendererRef.current.render({
-        scene: sceneRef.current,
-        camera: cameraRef.current,
-      });
-    }
-
-    // Mettre à jour la dernière position
-    scrollRef.current.last = scrollRef.current.current;
-
-    // Continuer l'animation
-    animationId.current = requestAnimationFrame(update);
-  }, [updateMediaScale, updateMediaX, updateMediaY]);
-
-  // Optimisation des gestionnaires d'événements avec useCallback
-  const handleWheel = useCallback((event: WheelEvent): void => {
+  // Gestionnaires d'événements
+  const handleWheel = (event: WheelEvent): void => {
     event.preventDefault();
     const normalized = event.deltaY;
     scrollRef.current.target += normalized * 0.5;
-  }, []);
+  };
 
-  const handleMouseDown = useCallback((event: MouseEvent): void => {
+  const handleMouseDown = (event: MouseEvent): void => {
     touchRef.current.isDown = true;
     touchRef.current.position = scrollRef.current.current;
     touchRef.current.start = event.clientY;
-  }, []);
+  };
 
-  const handleMouseMove = useCallback((event: MouseEvent): void => {
+  const handleMouseMove = (event: MouseEvent): void => {
     if (!touchRef.current.isDown) return;
 
     const y = event.clientY;
     const distance = (touchRef.current.start - y) * 2;
 
     scrollRef.current.target = touchRef.current.position + distance;
-  }, []);
+  };
 
-  const handleMouseUp = useCallback((): void => {
+  const handleMouseUp = (): void => {
     touchRef.current.isDown = false;
-  }, []);
+  };
 
-  const handleTouchStart = useCallback((event: TouchEvent): void => {
+  const handleTouchStart = (event: TouchEvent): void => {
     touchRef.current.isDown = true;
     touchRef.current.position = scrollRef.current.current;
     touchRef.current.start = event.touches[0].clientY;
-  }, []);
+  };
 
-  const handleTouchMove = useCallback((event: TouchEvent): void => {
+  const handleTouchMove = (event: TouchEvent): void => {
     if (!touchRef.current.isDown) return;
 
     const y = event.touches[0].clientY;
     const distance = (touchRef.current.start - y) * 2;
 
     scrollRef.current.target = touchRef.current.position + distance;
-  }, []);
+  };
 
-  const handleTouchEnd = useCallback((): void => {
+  const handleTouchEnd = (): void => {
     touchRef.current.isDown = false;
+  };
+
+  // Initialisation des fonctions pour éviter les dépendances circulaires
+  useEffect(() => {
+    // Définir updateMediaScale
+    updateMediaScaleRef.current = (media: MediaItem) => {
+      if (!media.bounds) return;
+
+      media.mesh.scale.x =
+        (viewportRef.current.width * media.bounds.width) /
+        screenRef.current.width;
+      media.mesh.scale.y =
+        (viewportRef.current.height * media.bounds.height) /
+        screenRef.current.height;
+    };
+
+    // Définir updateMediaX
+    updateMediaXRef.current = (media: MediaItem, x: number = 0) => {
+      if (!media.bounds) return;
+
+      media.mesh.position.x =
+        -(viewportRef.current.width / 2) +
+        media.mesh.scale.x / 2 +
+        ((media.bounds.left - x) / screenRef.current.width) *
+          viewportRef.current.width;
+    };
+
+    // Définir updateMediaY
+    updateMediaYRef.current = (media: MediaItem, y: number = 0) => {
+      if (!media.bounds) return;
+
+      media.mesh.position.y =
+        viewportRef.current.height / 2 -
+        media.mesh.scale.y / 2 -
+        ((media.bounds.top - y) / screenRef.current.height) *
+          viewportRef.current.height -
+        media.extra;
+    };
+
+    // Définir updateMediaBounds
+    updateMediaBoundsRef.current = () => {
+      mediasRef.current.forEach((media) => {
+        // Obtenir les dimensions
+        media.bounds = media.element.getBoundingClientRect();
+
+        // Mettre à jour l'échelle
+        updateMediaScaleRef.current(media);
+
+        // Mettre à jour les positions
+        updateMediaXRef.current(media);
+        updateMediaYRef.current(media);
+
+        // Mettre à jour les dimensions dans le shader
+        media.program.uniforms.uPlaneSizes.value = [
+          media.mesh.scale.x,
+          media.mesh.scale.y,
+        ];
+      });
+    };
+
+    // Définir handleResize
+    handleResizeRef.current = () => {
+      if (
+        !rendererRef.current ||
+        !cameraRef.current ||
+        !canvasRef.current ||
+        !galleryRef.current
+      )
+        return;
+
+      // Mettre à jour les dimensions
+      screenRef.current = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
+
+      // Mettre à jour le renderer
+      rendererRef.current.setSize(
+        screenRef.current.width,
+        screenRef.current.height
+      );
+
+      // Mettre à jour la caméra
+      cameraRef.current.perspective({
+        aspect: canvasRef.current.width / canvasRef.current.height,
+      });
+
+      // Calculer le viewport
+      const fov = cameraRef.current.fov * (Math.PI / 180);
+      const height = 2 * Math.tan(fov / 2) * cameraRef.current.position.z;
+      const width = height * cameraRef.current.aspect;
+
+      viewportRef.current = { width, height };
+
+      // Calculer la hauteur de la galerie
+      const galleryBounds = galleryRef.current.getBoundingClientRect();
+      galleryHeightRef.current =
+        (viewportRef.current.height * galleryBounds.height) /
+        screenRef.current.height;
+
+      // Mettre à jour les médias
+      if (mediasRef.current.length > 0) {
+        mediasRef.current.forEach((media) => {
+          media.extra = 0;
+          if (media.program.uniforms.uViewportSizes) {
+            media.program.uniforms.uViewportSizes.value = [
+              viewportRef.current.width,
+              viewportRef.current.height,
+            ];
+          }
+        });
+
+        updateMediaBoundsRef.current();
+      }
+    };
+
+    // Définir createMedias
+    createMediasRef.current = () => {
+      if (
+        !galleryRef.current ||
+        !glRef.current ||
+        !geometryRef.current ||
+        !sceneRef.current ||
+        !oglModulesRef.current
+      ) {
+        console.error("Références manquantes pour la création des médias");
+        return;
+      }
+
+      // Référence locale au contexte WebGL pour éviter les problèmes de typage
+      const gl = glRef.current;
+      const { Mesh, Program, Texture } = oglModulesRef.current;
+
+      const mediaElements = galleryRef.current.querySelectorAll(
+        `.${styles.imageContainer}`
+      );
+
+      mediasRef.current = Array.from(mediaElements)
+        .map((element, index) => {
+          const imgElement = element.querySelector("img");
+          if (!imgElement) {
+            console.error("Élément image introuvable");
+            return null;
+          }
+
+          // Créer une texture
+          const texture = new Texture(gl, {
+            generateMipmaps: false,
+          });
+
+          // Utiliser le constructeur global window.Image
+          const imageObj = new window.Image();
+          imageObj.crossOrigin = "anonymous";
+          imageObj.src = BASE_IMAGES[index % BASE_IMAGES.length]; // Utilise modulo pour éviter les erreurs si plus d'éléments que d'images
+
+          // Créer le programme
+          const program = new Program(gl, {
+            fragment: FRAGMENT_SHADER,
+            vertex: VERTEX_SHADER,
+            uniforms: {
+              tMap: { value: texture },
+              uPlaneSizes: { value: [0, 0] },
+              uImageSizes: { value: [0, 0] },
+              uViewportSizes: {
+                value: [viewportRef.current.width, viewportRef.current.height],
+              },
+              uStrength: { value: 0 },
+            },
+            transparent: true,
+            depthTest: false, // Pour un meilleur rendu des transparences
+            depthWrite: false,
+          });
+
+          // Gérer le chargement de l'image
+          imageObj.onload = () => {
+            program.uniforms.uImageSizes.value = [
+              imageObj.naturalWidth,
+              imageObj.naturalHeight,
+            ];
+            texture.image = imageObj;
+          };
+
+          // Créer le mesh
+          const mesh = new Mesh(gl, {
+            geometry: geometryRef.current,
+            program,
+          });
+
+          mesh.setParent(sceneRef.current);
+
+          return {
+            element: element as HTMLElement,
+            imgElement: imgElement as HTMLImageElement,
+            mesh,
+            program,
+            bounds: null,
+            extra: 0,
+          };
+        })
+        .filter(Boolean) as MediaItem[];
+
+      // Initialiser les bounds des médias
+      updateMediaBoundsRef.current();
+    };
+
+    // Définir update
+    updateRef.current = () => {
+      // Mettre à jour le défilement
+      scrollRef.current.target += speedRef.current;
+      scrollRef.current.current =
+        scrollRef.current.current +
+        (scrollRef.current.target - scrollRef.current.current) *
+          scrollRef.current.ease;
+
+      // Déterminer la direction
+      if (scrollRef.current.current > scrollRef.current.last) {
+        directionRef.current = "down";
+        speedRef.current = 2;
+      } else if (scrollRef.current.current < scrollRef.current.last) {
+        directionRef.current = "up";
+        speedRef.current = -2;
+      }
+
+      // Mettre à jour chaque média
+      mediasRef.current.forEach((media) => {
+        updateMediaScaleRef.current(media);
+        updateMediaXRef.current(media);
+        updateMediaYRef.current(media, scrollRef.current.current);
+
+        const planeOffset = media.mesh.scale.y / 2;
+        const viewportOffset = viewportRef.current.height / 2;
+
+        const isBefore = media.mesh.position.y + planeOffset < -viewportOffset;
+        const isAfter = media.mesh.position.y - planeOffset > viewportOffset;
+
+        if (directionRef.current === "up" && isBefore) {
+          media.extra -= galleryHeightRef.current;
+        }
+
+        if (directionRef.current === "down" && isAfter) {
+          media.extra += galleryHeightRef.current;
+        }
+
+        // Mettre à jour l'effet de distorsion
+        media.program.uniforms.uStrength.value =
+          ((scrollRef.current.current - scrollRef.current.last) /
+            screenRef.current.width) *
+          10;
+      });
+
+      // Rendu
+      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        rendererRef.current.render({
+          scene: sceneRef.current,
+          camera: cameraRef.current,
+        });
+      }
+
+      // Mettre à jour la dernière position
+      scrollRef.current.last = scrollRef.current.current;
+
+      // Continuer l'animation
+      animationId.current = requestAnimationFrame(updateRef.current);
+    };
+
+    // Définir initWebGL
+    initWebGLRef.current = () => {
+      if (!canvasRef.current || !oglModulesRef.current) return;
+
+      try {
+        const { Renderer, Camera, Transform, Plane } = oglModulesRef.current;
+
+        // Créer le renderer
+        rendererRef.current = new Renderer({
+          alpha: true,
+          antialias: true, // Amélioration de la qualité
+          canvas: canvasRef.current,
+          premultipliedAlpha: false, // Optimisation pour la transparence
+        });
+
+        glRef.current = rendererRef.current.gl;
+
+        if (!glRef.current) {
+          throw new Error("Impossible d'obtenir le contexte WebGL");
+        }
+
+        // Active la profondeur pour éviter les problèmes d'affichage
+        glRef.current.enable(glRef.current.DEPTH_TEST);
+
+        // Créer la caméra
+        cameraRef.current = new Camera(glRef.current);
+        cameraRef.current.fov = 45;
+        cameraRef.current.position.z = 5;
+
+        // Créer la scène
+        sceneRef.current = new Transform();
+
+        // Créer la géométrie
+        geometryRef.current = new Plane(glRef.current, {
+          heightSegments: 10,
+          widthSegments: 10, // Amélioration de la qualité
+        });
+
+        // Initialiser les dimensions
+        handleResizeRef.current();
+
+        // Charger et initialiser les médias
+        setTimeout(() => {
+          createMediasRef.current();
+
+          // Démarrer l'animation
+          animationId.current = requestAnimationFrame(updateRef.current);
+
+          setLoaded(true);
+        }, 200);
+      } catch (err) {
+        console.error("Erreur lors de l'initialisation de WebGL:", err);
+        setError(
+          "Erreur lors de l'initialisation de WebGL. Votre navigateur supporte-t-il WebGL?"
+        );
+      }
+    };
   }, []);
 
   // Chargement dynamique des modules OGL
@@ -550,7 +569,7 @@ export default function Architecture(): React.ReactElement {
         };
 
         // Initialiser WebGL
-        initWebGL();
+        initWebGLRef.current();
       } catch (err) {
         console.error("Erreur lors du chargement des modules OGL:", err);
         if (isMounted) {
@@ -570,13 +589,15 @@ export default function Architecture(): React.ReactElement {
         cancelAnimationFrame(animationId.current);
       }
     };
-  }, [initWebGL]);
+  }, []);
 
   // Gestion des événements - optimisé avec utilisation de useEffect et cleanup
   useEffect(() => {
     if (!loaded) return;
 
-    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("resize", handleResizeRef.current, {
+      passive: true,
+    });
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
@@ -586,7 +607,7 @@ export default function Architecture(): React.ReactElement {
     window.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", handleResizeRef.current);
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mousemove", handleMouseMove);
@@ -595,17 +616,7 @@ export default function Architecture(): React.ReactElement {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [
-    loaded,
-    handleResize,
-    handleWheel,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  ]);
+  }, [loaded]);
 
   // Nettoyage global lors du démontage
   useEffect(() => {
@@ -651,13 +662,22 @@ export default function Architecture(): React.ReactElement {
       <div className={styles.gallery} ref={galleryRef}>
         <div className={styles.imageSet}>
           {BASE_IMAGES.map((src, imgIndex) => (
-            <div key={`image-${imgIndex}`} className={styles.imageContainer}>
+            <div
+              key={`image-${imgIndex}`}
+              className={styles.imageContainer}
+              onClick={() => {
+                // Ajoutez ici l'action à effectuer au clic
+                console.log(`Image ${imgIndex + 1} clicked`);
+                // Par exemple ouvrir une modal ou naviguer vers une page
+              }}>
+              {/* Couche d'interaction */}
+              <div className={styles.imageOverlay}></div>
               <Image
                 src={src}
                 alt={`Gallery image ${imgIndex + 1}`}
                 className={styles.image}
                 fill
-                sizes="(max-width: 768px) 100vw, 33vw"
+                sizes="(max-width: 768px) 100vw, 50vw"
                 priority={imgIndex === 0}
                 quality={90}
               />

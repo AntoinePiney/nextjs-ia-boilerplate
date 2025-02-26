@@ -1,5 +1,5 @@
 import styles from "./page.module.css";
-import Architecture from "@/components/Architecture";
+import Architecture from "@/components/Architecture/Architecture";
 
 export default function Home() {
   return (
